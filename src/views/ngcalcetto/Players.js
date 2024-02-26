@@ -1,83 +1,63 @@
 import React from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 import PlayerTable from './PlayerTable'
 import PlayerCreateModal from './PlayerCreateModal'
-
-import avatar2 from 'src/assets/images/avatars/2.jpg'
-import avatar3 from 'src/assets/images/avatars/3.jpg'
-import avatar6 from 'src/assets/images/avatars/6.jpg'
-
-const tableExample = [
-  {
-    avatar: { src: avatar2 },
-    user: {
-      name: 'Ranfo',
-      new: false,
-      registered: '1 March, 2016',
-    },
-    pref_role: 'DEF',
-    score: {
-      value: 50,
-      color: 'info',
-    },
-    last_game: '1 Month ago',
-  },
-  {
-    avatar: { src: avatar3 },
-    user: {
-      name: 'DiFi',
-      new: false,
-      registered: '1 March, 2020',
-    },
-    pref_role: 'MID',
-    score: {
-      value: 50,
-      color: 'info',
-    },
-    last_game: '1 Week ago',
-  },
-  {
-    avatar: { src: avatar6 },
-    user: {
-      name: 'Khalid',
-      new: false,
-      registered: '1 March, 2017',
-    },
-    pref_role: 'ATT',
-    score: {
-      value: 65,
-      color: 'success',
-    },
-    last_game: '5 Days ago',
-  },
-  {
-    avatar: { src: avatar6 },
-    user: {
-      name: 'Pier',
-      new: true,
-      registered: '23 November, 2023',
-    },
-    pref_role: 'GK',
-    score: {
-      value: 30,
-      color: 'warning',
-    },
-    last_game: '1 Month ago',
-  },
-]
+import ErrorModal from './ErrorModal'
+import { getPlayers } from 'src/http/requests'
 
 export default function Players() {
-  const [modalVisible, setModalVisible] = useState(false)
+  const [PlayerModalVisible, setPlayerModalVisible] = useState(false)
+  const [ErrorModalVisible, setErrorModalVisible] = useState(false)
+  const [fetchedPlayers, setFetchedPlayers] = useState([])
+  const [isLoadingPlayers, setIsLoadingPlayers] = useState(false)
+  const [error, setError] = useState()
+
+  useEffect(() => {
+    async function fetchPlayers() {
+      setIsLoadingPlayers(true)
+      try {
+        const retrievedPlayers = await getPlayers()
+        setFetchedPlayers(retrievedPlayers)
+        setIsLoadingPlayers(false)
+      } catch (error) {
+        setIsLoadingPlayers(false)
+        setError({ message: error.message || 'An unknown error occurred while fetching players' })
+        setErrorModalVisible(true)
+      }
+    }
+    fetchPlayers()
+  }, [])
+
+  function addPersistedPlayer(playerData) {
+    setFetchedPlayers((prevPlayers) => {
+      const result = prevPlayers
+      result.push(playerData)
+      return result
+    })
+  }
 
   return (
     <>
       <PlayerTable
-        players={tableExample}
-        modalVisible={modalVisible}
-        setModalVisible={setModalVisible}
-      ></PlayerTable>
-      <PlayerCreateModal modalVisible={modalVisible} setModalVisible={setModalVisible} />
+        players={fetchedPlayers}
+        modalVisible={PlayerModalVisible}
+        setModalVisible={setPlayerModalVisible}
+        isLoadingPlayers={isLoadingPlayers}
+      />
+      <PlayerCreateModal
+        modalVisible={PlayerModalVisible}
+        setModalVisible={setPlayerModalVisible}
+        addPersistedPlayer={addPersistedPlayer}
+      />
+      {error && (
+        <ErrorModal
+          modalVisible={ErrorModalVisible}
+          setModalVisible={setErrorModalVisible}
+          title="An error occurred!"
+          message={error.message}
+        />
+      )}
     </>
   )
 }
