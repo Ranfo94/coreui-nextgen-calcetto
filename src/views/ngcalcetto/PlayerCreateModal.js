@@ -1,15 +1,22 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 
 import { CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter, CButton } from '@coreui/react'
 
 import PlayerCreateForm from './PlayerCreateForm'
-import { persistPlayer } from 'src/http/requests'
+import { persistPlayer, updatePlayer, getPlayer } from 'src/http/requests'
 import ErrorModal from './ErrorModal'
 
-export default function PlayerCreateModal({ modalVisible, setModalVisible, addPersistedPlayer }) {
+export default function PlayerCreateModal({
+  modalVisible,
+  setModalVisible,
+  addPersistedPlayer,
+  mode,
+  playerToFetch,
+}) {
   const [error, setError] = useState({})
   const [errorModalVisible, setErrorModalVisible] = useState(false)
+  const [isLoadingPlayer, setIsLoadingPlayer] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     acceleration: 1,
@@ -30,6 +37,54 @@ export default function PlayerCreateModal({ modalVisible, setModalVisible, addPe
     vision: 1,
   })
 
+  function updatePlayerState(playerData) {
+    setFormData(() => {
+      return {
+        name: playerData.name,
+        acceleration: playerData.stats.acceleration,
+        aggression: playerData.stats.aggression,
+        bravery: playerData.stats.bravery,
+        concentration: playerData.stats.concentration,
+        defending: playerData.stats.defending,
+        determination: playerData.stats.determination,
+        dribbling: playerData.stats.dribbling,
+        finishing: playerData.stats.finishing,
+        first_touch: playerData.stats.first_touch,
+        passing: playerData.stats.passing,
+        shots: playerData.stats.shots,
+        speed: playerData.stats.speed,
+        stamina: playerData.stats.stamina,
+        strenght: playerData.stats.strenght,
+        team_work: playerData.stats.teamwork,
+        vision: playerData.stats.vision,
+      }
+    })
+    console.log(formData)
+  }
+
+  useEffect(() => {
+    //fetch player with player.id
+    async function fetchPlayer(player_id) {
+      setIsLoadingPlayer(true)
+      try {
+        console.log('loading player ' + player_id)
+        const fetchedPlayer = await getPlayer(player_id)
+        updatePlayerState(fetchedPlayer)
+      } catch (error) {
+        setError({ message: error.message || 'An unknown error occurred while fetching player' })
+        setErrorModalVisible(true)
+      } finally {
+        setIsLoadingPlayer(false)
+      }
+    }
+
+    console.log(mode, playerToFetch)
+
+    if (playerToFetch && mode === 'UPDATE') {
+      fetchPlayer(playerToFetch)
+    }
+  }, [mode, playerToFetch])
+
   function handleFormDataChanged(key, value) {
     setFormData((prevFormData) => {
       return {
@@ -42,16 +97,65 @@ export default function PlayerCreateModal({ modalVisible, setModalVisible, addPe
   function handleFormDataSubmit() {
     async function sendPostData() {
       try {
+        console.log('sending post data...')
         const persisted_player = await persistPlayer(formData)
-        addPersistedPlayer(persisted_player)
+        addPersistedPlayer(mode, persisted_player)
         setModalVisible(false)
       } catch (error) {
-        setError({ message: error.message || 'An unknown error occurred while fetching players' })
+        setError({
+          message: error.message || 'An unknown error occurred while creating new player',
+        })
+        setErrorModalVisible(true)
+      }
+    }
+    async function sendPutData() {
+      try {
+        console.log('sending put data: ' + JSON.stringify(formData))
+        const updated_player = await updatePlayer(playerToFetch, formData)
+        addPersistedPlayer(mode, updated_player)
+        setModalVisible(false)
+      } catch (error) {
+        setError({ message: error.message || 'An unknown error occurred while updating player' })
         setErrorModalVisible(true)
       }
     }
     console.log(formData)
-    sendPostData()
+    if (mode === 'CREATE') {
+      sendPostData()
+    } else {
+      //send PUT request
+      sendPutData()
+    }
+  }
+
+  function getFormButtonString() {
+    let result = ''
+    switch (mode) {
+      case 'CREATE':
+        result = 'Submit'
+        break
+      case 'UPDATE':
+        result = 'Update'
+        break
+      default:
+        break
+    }
+    return result
+  }
+
+  function getModalTitle() {
+    let result = ''
+    switch (mode) {
+      case 'CREATE':
+        result = 'Create new player'
+        break
+      case 'UPDATE':
+        result = 'Update player'
+        break
+      default:
+        break
+    }
+    return result
   }
 
   return (
@@ -62,17 +166,21 @@ export default function PlayerCreateModal({ modalVisible, setModalVisible, addPe
         aria-labelledby="LiveDemoExampleLabel"
       >
         <CModalHeader onClose={() => setModalVisible(false)}>
-          <CModalTitle id="LiveDemoExampleLabel">Create new player</CModalTitle>
+          <CModalTitle id="LiveDemoExampleLabel">{getModalTitle()}</CModalTitle>
         </CModalHeader>
         <CModalBody>
-          <PlayerCreateForm formData={formData} formDataChanged={handleFormDataChanged} />
+          {isLoadingPlayer ? (
+            <p>Loading Player data ...</p>
+          ) : (
+            <PlayerCreateForm formData={formData} formDataChanged={handleFormDataChanged} />
+          )}
         </CModalBody>
         <CModalFooter>
           <CButton color="secondary" onClick={() => setModalVisible(false)}>
             Close
           </CButton>
           <CButton color="primary" onClick={() => handleFormDataSubmit()}>
-            Sumbit
+            {getFormButtonString()}
           </CButton>
         </CModalFooter>
       </CModal>
@@ -92,4 +200,6 @@ PlayerCreateModal.propTypes = {
   modalVisible: PropTypes.bool,
   setModalVisible: PropTypes.func,
   addPersistedPlayer: PropTypes.func,
+  mode: PropTypes.string,
+  playerToFetch: PropTypes.number,
 }

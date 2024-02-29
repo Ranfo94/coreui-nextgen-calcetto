@@ -25,11 +25,17 @@ const DEFAULT_REGISTERED = '20 February, 2024'
 const DEFAULT_NEW = true
 const DEFAULT_SCORE_COLOR = 'success'
 
-export default function PlayerTable({ players, modalVisible, setModalVisible, isLoadingPlayers }) {
+export default function PlayerTable({
+  players,
+  setModalVisible,
+  setModalMode,
+  isLoadingPlayers,
+  playerSelected,
+}) {
   const tableBody = (
     <CTableBody>
       {players.map((item, index) => (
-        <CTableRow v-for="item in tableItems" key={index}>
+        <CTableRow v-for="item in tableItems" key={index} onClick={() => playerSelected(item)}>
           <CTableDataCell className="text-center">
             <CAvatar size="md" src={item.avatar || DEFAULT_AVATAR} />
           </CTableDataCell>
@@ -64,6 +70,11 @@ export default function PlayerTable({ players, modalVisible, setModalVisible, is
   let playersCount = 0
   if (players !== null) {
     playersCount = players.length
+  }
+
+  function openModalWithState(state) {
+    setModalMode(state)
+    setModalVisible(true)
   }
 
   return (
@@ -101,7 +112,7 @@ export default function PlayerTable({ players, modalVisible, setModalVisible, is
                     <button
                       type="button"
                       style={{ border: 'none' }}
-                      onClick={() => setModalVisible(!modalVisible)}
+                      onClick={() => openModalWithState('CREATE')}
                     >
                       {<CIcon icon={cilPlus} />}
                     </button>
@@ -119,7 +130,8 @@ export default function PlayerTable({ players, modalVisible, setModalVisible, is
 
 PlayerTable.propTypes = {
   players: PropTypes.array,
-  modalVisible: PropTypes.bool,
   setModalVisible: PropTypes.func,
+  setModalMode: PropTypes.func,
   isLoadingPlayers: PropTypes.bool,
+  playerSelected: PropTypes.func,
 }
