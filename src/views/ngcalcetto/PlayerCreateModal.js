@@ -4,7 +4,7 @@ import PropTypes from 'prop-types'
 import { CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter, CButton } from '@coreui/react'
 
 import PlayerCreateForm from './PlayerCreateForm'
-import { persistPlayer, updatePlayer, getPlayer } from 'src/http/requests'
+import { persistPlayer, updatePlayer, getPlayer, deletePlayer } from 'src/http/requests'
 import ErrorModal from './ErrorModal'
 
 export default function PlayerCreateModal({
@@ -128,6 +128,21 @@ export default function PlayerCreateModal({
     }
   }
 
+  function handlePlayerDelete() {
+    async function sendPlayerDelete() {
+      try {
+        console.log('Deleting player ' + playerToFetch)
+        await deletePlayer(playerToFetch)
+        setModalVisible(false)
+      } catch (error) {
+        setError({ message: error.message || 'An unknown error occurred while deleting player' })
+        setErrorModalVisible(true)
+      }
+    }
+
+    sendPlayerDelete()
+  }
+
   function getFormButtonString() {
     let result = ''
     switch (mode) {
@@ -182,6 +197,11 @@ export default function PlayerCreateModal({
           <CButton color="primary" onClick={() => handleFormDataSubmit()}>
             {getFormButtonString()}
           </CButton>
+          {!isLoadingPlayer && mode === 'UPDATE' && (
+            <CButton color="danger" onClick={() => handlePlayerDelete()}>
+              Delete
+            </CButton>
+          )}
         </CModalFooter>
       </CModal>
       {error && (

@@ -66,3 +66,13 @@ export async function updatePlayer(id, formData) {
 
   return resData
 }
+
+export async function deletePlayer(id) {
+  const response = await fetch('http://localhost:8000/players/' + id, {
+    method: 'DELETE',
+  })
+
+  if (!response.ok) {
+    throw new Error("Can't delete player, please try again later.")
+  }
+}
