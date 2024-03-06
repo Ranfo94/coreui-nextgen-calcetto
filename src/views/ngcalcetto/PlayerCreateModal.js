@@ -133,6 +133,8 @@ export default function PlayerCreateModal({
       try {
         console.log('Deleting player ' + playerToFetch)
         await deletePlayer(playerToFetch)
+        const deletedPlayer = { id: playerToFetch }
+        addPersistedPlayer('DELETE', deletedPlayer)
         setModalVisible(false)
       } catch (error) {
         setError({ message: error.message || 'An unknown error occurred while deleting player' })
